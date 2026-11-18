@@ -1,0 +1,31 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+description: Rockchip RK3506 Innosilicon USB 2.0 PHY
+
+compatible: "rockchip,rk3506-usb2phy"
+
+include: [base.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+
+  "#clock-cells":
+    type: int
+    const: 0
+
+child-binding:
+  properties:
+    "#phy-cells":
+      type: int
+      const: 0
+
+    status:
+      type: string

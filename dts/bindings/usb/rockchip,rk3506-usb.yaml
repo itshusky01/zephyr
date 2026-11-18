@@ -1,0 +1,25 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+description: Rockchip RK3506 DWC2 USB 2.0 OTG controller
+
+compatible: "rockchip,rk3506-usb"
+
+include: ["snps,dwc2.yaml", reset-device.yaml]
+
+properties:
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+
+  phy-names:
+    type: string-array
+    required: true
+
+  rockchip,phy-port:
+    type: int
+    default: 0
+    enum: [0, 1]
+    description: USB2 PHY port index connected to this controller.

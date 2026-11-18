@@ -1,0 +1,26 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config SOC_RK3506_A7
+	select ARM
+	select CPU_CORTEX_A7
+	select ARM_ARCH_TIMER
+	select ARM_AARCH32_MMU
+	select ARM_MMU_MAP_VECTORS
+	select SYS_CLOCK_EXISTS
+	select SOC_RESET_HOOK
+	select KERNEL_DIRECT_MAP
+
+config RK3506_M0
+	bool "Rockchip RK3506 Cortex-M0 control"
+	default y
+	depends on SOC_RK3506_A7
+	depends on DT_HAS_ROCKCHIP_RK3506_M0_ENABLED
+	select CRC
+	help
+	  Enable the RK3506 BUSMCU0 control interface, including firmware
+	  container validation, SRAM loading, SIP startup, hot restart, and
+	  M0 status reporting.
+
+config SOC_PART_NUMBER
+	default "RK3506" if SOC_RK3506

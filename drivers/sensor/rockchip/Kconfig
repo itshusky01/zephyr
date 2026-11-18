@@ -1,0 +1,10 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config ROCKCHIP_RK3506_TSADC
+	bool "Rockchip RK3506 TSADC"
+	default y
+	depends on DT_HAS_ROCKCHIP_RK3506_TSADC_ENABLED
+	depends on SENSOR
+	help
+	  Enable the RK3506 on-die temperature sensor driver.

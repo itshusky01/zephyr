@@ -1,0 +1,29 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+description: Rockchip RK3506 persistent reset reason scratch
+
+compatible: "rockchip,rk3506-reset-reason"
+
+include: [base.yaml]
+
+properties:
+  rockchip,pmugrf:
+    type: phandle
+    required: true
+
+  rockchip,status-offset:
+    type: int
+    required: true
+
+  rockchip,clear-offset:
+    type: int
+    required: true
+
+  rockchip,scratch-offset:
+    type: int
+    required: true
+
+  rockchip,scratch-magic:
+    type: int
+    required: true

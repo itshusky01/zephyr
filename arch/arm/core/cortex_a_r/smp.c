@@ -14,12 +14,15 @@
 #include <zephyr/kernel/thread_stack.h>
 #include <zephyr/toolchain/gcc.h>
 #include <zephyr/platform/hooks.h>
+#include <zephyr/arch/arm/mmu/arm_mmu.h>
+#include <zephyr/sys/atomic.h>
 
 #define INV_MPID	UINT32_MAX
 
 #define SGI_SCHED_IPI	0
 #define SGI_MMCFG_IPI	1
 #define SGI_FPU_IPI	2
+#define SGI_TLB_IPI	3
 
 K_KERNEL_STACK_ARRAY_DECLARE(z_interrupt_stacks,
 				   CONFIG_MP_MAX_NUM_CPUS,
@@ -224,6 +227,7 @@ void arch_secondary_cpu_init(void)
 	arm_gic_secondary_init();
 
 	irq_enable(SGI_SCHED_IPI);
+	irq_enable(SGI_TLB_IPI);
 
 	/*! TODO: FPU irq
 	 *  \todo FPU irq
@@ -277,6 +281,43 @@ static void send_ipi(unsigned int ipi, uint32_t cpu_bitmap)
 	}
 }
 
+static atomic_t tlb_ipi_ack_count;
+
+static void tlb_ipi_handler(const void *unused)
+{
+	ARG_UNUSED(unused);
+
+	arm_mmu_invalidate_tlb_local();
+	atomic_inc(&tlb_ipi_ack_count);
+}
+
+void arch_tlb_invalidate_all(void)
+{
+	uint32_t self = arch_curr_cpu()->id;
+	uint32_t targets = 0;
+	uint32_t target_count = 0;
+
+	arm_mmu_invalidate_tlb_local();
+
+	for (uint32_t i = 0; i < arch_num_cpus(); i++) {
+		if (i != self && cpu_map[i] != INV_MPID) {
+			targets |= BIT(i);
+			target_count++;
+		}
+	}
+
+	if (targets == 0) {
+		return;
+	}
+
+	atomic_set(&tlb_ipi_ack_count, 0);
+	send_ipi(SGI_TLB_IPI, targets);
+
+	while (atomic_get(&tlb_ipi_ack_count) < target_count) {
+		arch_spin_relax();
+	}
+}
+
 void sched_ipi_handler(const void *unused)
 {
 	ARG_UNUSED(unused);
@@ -304,8 +345,17 @@ int arch_smp_init(void)
 	 */
 	IRQ_CONNECT(SGI_SCHED_IPI, IRQ_DEFAULT_PRIORITY, sched_ipi_handler, NULL, 0);
 	irq_enable(SGI_SCHED_IPI);
+	IRQ_CONNECT(SGI_TLB_IPI, IRQ_DEFAULT_PRIORITY, tlb_ipi_handler, NULL, 0);
+	irq_enable(SGI_TLB_IPI);
 
 	return 0;
 }
 
+#endif
+
+#ifndef CONFIG_SMP
+void arch_tlb_invalidate_all(void)
+{
+	arm_mmu_invalidate_tlb_local();
+}
 #endif

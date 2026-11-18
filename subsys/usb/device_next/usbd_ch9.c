@@ -1043,6 +1043,9 @@ static int ctrl_xfer_get_setup(struct usbd_context *const uds_ctx,
 	struct usb_setup_packet *setup = usbd_get_setup_pkt(uds_ctx);
 
 	if (buf->len != sizeof(struct usb_setup_packet)) {
+		LOG_ERR("Malformed setup packet length %zu, expected %zu", buf->len,
+			sizeof(struct usb_setup_packet));
+		LOG_HEXDUMP_ERR(buf->data, MIN(buf->len, 16U), "setup buffer:");
 		return -EINVAL;
 	}
 
@@ -1152,6 +1155,12 @@ int usbd_handle_ctrl_xfer(struct usbd_context *const uds_ctx,
 
 	if ((bi->setup || bi->data) && bi->ep == USB_CONTROL_EP_OUT) {
 		if (bi->setup) {
+			if (buf->len == 0U) {
+				LOG_DBG("Discard empty setup buffer completion");
+				net_buf_unref(buf);
+				return usbd_enqueue_setup(uds_ctx);
+			}
+
 			if (ctrl_xfer_get_setup(uds_ctx, buf)) {
 				LOG_ERR("Malformed setup packet");
 				net_buf_unref(buf);

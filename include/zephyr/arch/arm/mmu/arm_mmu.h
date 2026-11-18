@@ -141,6 +141,21 @@ struct arm_mmu_config {
  */
 extern const struct arm_mmu_config mmu_config;
 
+/**
+ * @brief Finalize MMU regions after the final image layout is known.
+ *
+ * SoCs may provide a strong implementation of this hook to update regions
+ * whose base address or size depends on linker symbols. The default weak
+ * implementation does nothing.
+ */
+void arm_mmu_config_setup(void);
+
+/** Invalidate the calling CPU's TLB entries. */
+void arm_mmu_invalidate_tlb_local(void);
+
+/** Invalidate TLB entries on all online CPUs. */
+void arch_tlb_invalidate_all(void);
+
 int z_arm_mmu_init(bool is_primary_core);
 
 #endif /* _ASMLANGUAGE */

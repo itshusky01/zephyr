@@ -1,0 +1,207 @@
+/*
+ * Copyright (c) 2026 Jiaming Zhao
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/dt-bindings/pinctrl/rk3506-pinctrl.h>
+
+&pinctrl {
+	eth_clk0_25m_out: eth-clk0-25m-out {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 20, 1)>;
+			bias-disable;
+		};
+	};
+	eth_clk1_25m_out: eth-clk1-25m-out {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 19, 1)>;
+			bias-disable;
+		};
+	};
+	eth_rmii0_miim: eth-rmii0-miim {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 14, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 15, 1)>;
+			bias-disable;
+		};
+	};
+	eth_rmii0_rx_bus2: eth-rmii0-rx-bus2 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 8, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 9, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 16, 1)>;
+			bias-disable;
+		};
+	};
+	eth_rmii0_tx_bus2: eth-rmii0-tx-bus2 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 11, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 12, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 13, 1)>;
+			bias-disable;
+		};
+	};
+	eth_rmii0_clk: eth-rmii0-clk {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 10, 1)>;
+			bias-disable;
+		};
+	};
+	eth_rmii1_miim: eth-rmii1-miim {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 12, 2)>,
+				 <RK3506_PINCTRL_MUX(3, 13, 2)>;
+			bias-disable;
+		};
+	};
+	eth_rmii1_rx_bus2: eth-rmii1-rx-bus2 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 6, 2)>,
+				 <RK3506_PINCTRL_MUX(3, 7, 2)>,
+				 <RK3506_PINCTRL_MUX(3, 14, 2)>;
+			bias-disable;
+		};
+	};
+	eth_rmii1_tx_bus2: eth-rmii1-tx-bus2 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 9, 2)>,
+				 <RK3506_PINCTRL_MUX(3, 10, 2)>,
+				 <RK3506_PINCTRL_MUX(3, 11, 2)>;
+			bias-disable;
+		};
+	};
+	eth_rmii1_clk: eth-rmii1-clk {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 8, 2)>;
+			bias-disable;
+		};
+	};
+	fspi_bus4: fspi-bus4 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 2, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 3, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 4, 1)>,
+				 <RK3506_PINCTRL_MUX(2, 5, 1)>;
+			bias-disable;
+		};
+	};
+	fspi_clk: fspi-clk {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 1, 1)>;
+			bias-disable;
+		};
+	};
+	fspi_csn: fspi-csn {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(2, 0, 1)>;
+			bias-disable;
+		};
+	};
+	sdmmc_bus4: sdmmc-bus4 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 2, 1)>,
+				 <RK3506_PINCTRL_MUX(3, 3, 1)>,
+				 <RK3506_PINCTRL_MUX(3, 4, 1)>,
+				 <RK3506_PINCTRL_MUX(3, 5, 1)>;
+			bias-pull-up;
+		};
+	};
+	sdmmc_clk: sdmmc-clk {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 0, 1)>;
+			bias-disable;
+		};
+	};
+	sdmmc_cmd: sdmmc-cmd {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 1, 1)>;
+			bias-pull-up;
+		};
+	};
+	spi0_clk: spi0-clk {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 16, 2)>,
+				 <RK3506_PINCTRL_MUX(0, 18, 2)>,
+				 <RK3506_PINCTRL_MUX(0, 17, 2)>;
+			bias-disable;
+		};
+	};
+	spi0_csn0: spi0-csn0 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 19, 2)>;
+			bias-disable;
+		};
+	};
+	spi0_csn1: spi0-csn1 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 15, 2)>;
+			bias-disable;
+		};
+	};
+	spi1_clk: spi1-clk {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 8, 2)>,
+				 <RK3506_PINCTRL_MUX(0, 10, 2)>,
+				 <RK3506_PINCTRL_MUX(0, 9, 2)>;
+			bias-disable;
+		};
+	};
+	spi1_csn0: spi1-csn0 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 14, 2)>;
+			bias-disable;
+		};
+	};
+	spi1_csn1: spi1-csn1 {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 7, 2)>;
+			bias-disable;
+		};
+	};
+	uart0_xfer: uart0-xfer {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 23, 1)>,
+				 <RK3506_PINCTRL_MUX(0, 22, 1)>;
+			bias-pull-up;
+		};
+	};
+	uart5m0_xfer: uart5m0-xfer {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 11, 1)>,
+				 <RK3506_PINCTRL_MUX(3, 12, 1)>;
+			bias-pull-up;
+		};
+	};
+	uart5m0_ctsn: uart5m0-ctsn {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 10, 1)>;
+			bias-disable;
+		};
+	};
+	uart5m0_rtsn: uart5m0-rtsn {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(3, 13, 1)>;
+			bias-disable;
+		};
+	};
+	uart5m1_xfer: uart5m1-xfer {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(1, 27, 6)>,
+				 <RK3506_PINCTRL_MUX(1, 26, 6)>;
+			bias-pull-up;
+		};
+	};
+	uart5m1_ctsn: uart5m1-ctsn {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(1, 9, 6)>;
+			bias-disable;
+		};
+	};
+	uart5m1_rtsn: uart5m1-rtsn {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(1, 25, 6)>;
+			bias-disable;
+		};
+	};
+};

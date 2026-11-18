@@ -1,0 +1,14 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config WDT_RK3506
+	bool "Rockchip RK3506 watchdog"
+	default y
+	depends on DT_HAS_ROCKCHIP_RK3506_WDT_ENABLED
+	select CLOCK_CONTROL
+	select HAS_WDT_NO_CALLBACKS
+	select RESET
+	help
+	  Enable the RK3506 DesignWare watchdog timer. The driver enables the
+	  timer and peripheral clocks, supports reset-only operation, and can
+	  disable the watchdog by resetting the WDT controller.

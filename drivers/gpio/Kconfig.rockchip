@@ -1,0 +1,13 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config GPIO_ROCKCHIP
+	bool "Rockchip GPIO bank driver"
+	default y
+	depends on DT_HAS_ROCKCHIP_GPIO_BANK_ENABLED
+	help
+	  Enable the common Rockchip GPIO bank driver. The driver supports
+	  the legacy and split-register GPIO layouts, interrupts, and basic
+	  input/output operations. SoC-specific bank quirks are selected
+	  through devicetree properties. The split-register layout is
+	  currently validated on RK3506.

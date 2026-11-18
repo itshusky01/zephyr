@@ -690,11 +690,23 @@ static inline int dwc2_handle_evt_dout(const struct device *dev,
 	struct net_buf *buf;
 	int err = 0;
 
-	buf = udc_buf_get(cfg);
+	buf = udc_buf_peek(cfg);
 	if (buf == NULL) {
 		LOG_ERR("No buffer queued for ep 0x%02x", cfg->addr);
 		return -ENODATA;
 	}
+
+	/*
+	 * Some DWC2 revisions report a stale EP0 XferCompl before the SETUP
+	 * event. Keep the empty setup buffer queued so it can be filled by the
+	 * following SETUP packet instead of exposing it as a zero-length DOUT.
+	 */
+	if (udc_get_buf_info(buf)->setup && buf->len == 0U) {
+		udc_ep_set_busy(cfg, false);
+		return 0;
+	}
+
+	buf = udc_buf_get(cfg);
 
 	if (dwc2_in_buffer_dma_mode(dev)) {
 		sys_cache_data_invd_range(buf->data, buf->len);

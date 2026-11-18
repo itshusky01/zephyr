@@ -1,0 +1,60 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+description: Rockchip RK3506 DesignWare watchdog
+
+compatible: "rockchip,rk3506-wdt"
+
+include: [base.yaml, reset-device.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    type: array
+
+  clocks:
+    type: phandle-array
+    required: true
+
+  clock-names:
+    type: string-array
+    required: true
+    const: ["tclk", "pclk"]
+
+  resets:
+    type: phandle-array
+    required: true
+
+  reset-names:
+    type: string-array
+    required: true
+    const: ["pclk", "tclk"]
+
+  reset-pulse-length:
+    type: int
+    default: 16
+    enum:
+      - 2
+      - 4
+      - 8
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+
+  rockchip,cru:
+    type: phandle
+    required: true
+    description: |
+      Phandle to the RK3506 Clock and Reset Unit containing the global
+      watchdog reset controls.
+
+  rockchip,wdt-index:
+    type: int
+    required: true
+    enum:
+      - 0
+      - 1

@@ -260,6 +260,7 @@ int sd_init(const struct device *sdhc_dev, struct sd_card *card)
 	if (!sdhc_dev) {
 		return -ENODEV;
 	}
+	card->cid_valid = false;
 	card->sdhc = sdhc_dev;
 	ret = sdhc_get_host_props(card->sdhc, &card->host_props);
 	if (ret) {

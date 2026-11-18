@@ -1,0 +1,32 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+title: Rockchip GPIO bank
+
+description: Rockchip GPIO bank
+
+compatible: "rockchip,gpio-bank"
+
+include: [gpio-controller.yaml, base.yaml, pinctrl-device.yaml, interrupt-controller.yaml]
+
+properties:
+  reg:
+    required: true
+
+  rockchip,bank4-pin-remap:
+    type: boolean
+    description: |
+      Swap adjacent pin positions for pins 0 through 5 of this bank. This is
+      an RK3506 GPIO bank 4 hardware quirk; the DT node names the affected
+      bank directly instead of requiring the generic driver to know its index.
+
+  interrupts:
+    type: array
+    required: true
+
+  "#gpio-cells":
+    const: 2
+
+gpio-cells:
+  - pin
+  - flags

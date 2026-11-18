@@ -1,0 +1,52 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+title: Rockchip RK3506 pin controller
+
+description: |
+  Pin controller for the Rockchip RK3506 IOC/GRF blocks. Pin configurations
+  use a 32-bit encoded value containing bank, pin, and mux function.
+
+compatible: "rockchip,rk3506-pinctrl"
+
+include: base.yaml
+
+properties:
+  rockchip,grf:
+    type: phandle
+    required: true
+  rockchip,ioc1:
+    type: phandle
+    required: true
+  rockchip,pmu:
+    type: phandle
+    required: true
+
+child-binding:
+  description: |
+    A pin control state. State nodes contain one or more pin groups.
+
+  child-binding:
+    include:
+      - name: pincfg-node.yaml
+        property-allowlist:
+          - bias-disable
+          - bias-pull-up
+          - bias-pull-down
+          - drive-strength
+          - drive-open-drain
+          - drive-push-pull
+          - input-enable
+          - input-disable
+          - input-schmitt-enable
+          - input-schmitt-disable
+          - slew-rate
+
+    properties:
+      pinmux:
+        type: array
+        required: true
+        description: |
+          Array of encoded RK3506 pin mux entries. Use
+          RK3506_PINCTRL_MUX(bank, pin, function) from
+          zephyr/dt-bindings/pinctrl/rk3506-pinctrl.h.

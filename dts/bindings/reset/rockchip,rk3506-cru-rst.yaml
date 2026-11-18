@@ -1,0 +1,19 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+title: Rockchip RK3506 CRU Reset Controller
+
+description: |
+  Reset controller for the Rockchip RK3506 CRU. Reset IDs are defined in
+  include/zephyr/dt-bindings/reset/rk3506-cru-reset.h.
+
+compatible: "rockchip,rk3506-cru-rst"
+
+include: [reset-controller.yaml, base.yaml]
+
+properties:
+  "#reset-cells":
+    const: 1
+
+reset-cells:
+  - id

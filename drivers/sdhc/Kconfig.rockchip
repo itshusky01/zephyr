@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config SDHC_ROCKCHIP_RK3506
+	bool "Rockchip RK3506 DesignWare Mobile Storage Host Controller"
+	default y
+	depends on DT_HAS_ROCKCHIP_RK3506_DW_MSHC_ENABLED
+	select SDHC_COMMON
+	select SDHC_SUPPORTS_NATIVE_MODE
+	select PINCTRL
+	select CLOCK_CONTROL
+	select RESET
+	help
+	  Enable the DesignWare Mobile Storage Host Controller driver used by
+	  Rockchip RK3506. The driver supports native SD/eMMC commands using
+	  PIO/FIFO and internal DMA data transfers, reset/recovery handling,
+	  and legacy/high-speed timing. Tuning and HS200/HS400 are not yet
+	  implemented.
+
+config SDHC_ROCKCHIP_RK3506_DMA
+	bool "Use RK3506 SDHC internal DMA for aligned transfers"
+	default n
+	depends on SDHC_ROCKCHIP_RK3506
+	select CACHE_MANAGEMENT if DCACHE
+	help
+	  Use the DesignWare internal DMA controller for aligned transfers using
+	  chained descriptors. Transfers larger than the configured descriptor
+	  span continue to use the PIO/FIFO path.
+
+config SDHC_BUFFER_ALIGNMENT
+	default DCACHE_LINE_SIZE if DCACHE
+	default 32
+
+config SDHC_ROCKCHIP_RK3506_DMA_MAX_DESC
+	int "Maximum RK3506 SDHC IDMAC descriptor count"
+	depends on SDHC_ROCKCHIP_RK3506_DMA
+	default 256
+	range 16 1024
+	help
+	  Maximum number of chained 32-bit IDMAC descriptors allocated by the
+	  driver. Each descriptor transfers up to 4096 bytes, so the default of
+	  256 descriptors supports DMA requests up to 1 MiB.
+
+config SDHC_ROCKCHIP_RK3506_CLOCK_LOW_POWER
+	bool "Gate the RK3506 SDHC card clock while idle"
+	depends on SDHC_ROCKCHIP_RK3506
+	default y
+	help
+	  Enable the controller's cclk_low_power bit. Disable it to keep the card
+	  clock running continuously, which can help isolate clock-gating effects
+	  during transfer throughput testing.

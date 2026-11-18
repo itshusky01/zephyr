@@ -1,0 +1,13 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+description: Rockchip RK3506 BUSMCU0 remote core
+
+compatible: "rockchip,rk3506-m0"
+
+include: base.yaml
+
+properties:
+  memory-region:
+    type: phandle
+    description: Shared DDR region used by the M0 runtime and A7 IPC

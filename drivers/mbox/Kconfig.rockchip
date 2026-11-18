@@ -1,0 +1,12 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config MBOX_ROCKCHIP_RK3506
+	bool "Rockchip RK3506 mailbox"
+	default y
+	depends on DT_HAS_ROCKCHIP_RK3506_MAILBOX_ENABLED
+	depends on CLOCK_CONTROL
+	help
+	  Enable the Rockchip RK3506 mailbox channel driver. Each 4 KiB mailbox
+	  channel provides one 32-bit command word and one 32-bit data word in each
+	  direction, with TX-done and RX-done interrupts.

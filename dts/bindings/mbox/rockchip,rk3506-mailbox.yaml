@@ -1,0 +1,25 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+description: Rockchip RK3506 mailbox channel
+
+compatible: "rockchip,rk3506-mailbox"
+
+include: [base.yaml, mailbox-controller.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+    const: ["pclk_mailbox"]
+
+  "#mbox-cells":
+    const: 0

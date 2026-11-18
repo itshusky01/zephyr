@@ -97,7 +97,7 @@ enum sd_r1_status {
 	/* Bit 4 reserved for SDIO */
 	SD_R1_APP_CMD = BIT(5),
 	SD_R1_FX_EVENT = BIT(6),
-	/* Bit 7 reserved */
+	MMC_R1_SWITCH_ERROR = BIT(7),
 	SD_R1_RDY_DATA = BIT(8),
 	SD_R1_CUR_STATE = (0xFU << SD_R1_CURRENT_STATE_OFFSET),
 	SD_R1_ERASE_RESET = BIT(13),

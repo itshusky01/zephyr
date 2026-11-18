@@ -1,0 +1,11 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+config PINCTRL_ROCKCHIP_RK3506
+	bool "Rockchip RK3506 pinctrl driver"
+	default y
+	depends on DT_HAS_ROCKCHIP_RK3506_PINCTRL_ENABLED
+	help
+	  Enable the Rockchip RK3506 pin controller driver. It supports
+	  pin mux selection, bias, drive strength, schmitt trigger, input
+	  enable, open drain, and slew-rate configuration.

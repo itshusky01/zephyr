@@ -1,6 +1,23 @@
 # SPDX-FileCopyrightText: Copyright (c) 2026 KylinSoft Corporation
 # SPDX-License-Identifier: Apache-2.0
 
+config CLOCK_CONTROL_ROCKCHIP_RK3506
+	bool "Rockchip RK3506 CRU clock controller"
+	default y
+	depends on DT_HAS_ROCKCHIP_RK3506_CRU_CLK_ENABLED
+	help
+	  Enable clock gate, rate, parent selection and divider support for the
+	  Rockchip RK3506 CRU. DDR clock changes are not supported.
+
+config CLOCK_CONTROL_ROCKCHIP_RK3506_RUNTIME_PLL
+	bool "Rockchip RK3506 runtime V0PLL control"
+	default n
+	depends on CLOCK_CONTROL_ROCKCHIP_RK3506
+	help
+	  Enable runtime retuning of V0PLL using a fixed set of validated
+	  frequencies. This is intended for board-specific DVFS and validation
+	  paths, not as a general-purpose PLL synthesis interface.
+
 config CLOCK_CONTROL_ROCKCHIP_RK3588
 	bool "Rockchip RK3588 CRU clock controller"
 	default y

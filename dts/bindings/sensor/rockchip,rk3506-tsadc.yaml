@@ -1,0 +1,38 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+title: Rockchip RK3506 on-die temperature sensor
+
+description: Rockchip RK3506 on-die temperature sensor
+
+compatible: "rockchip,rk3506-tsadc"
+
+include: [sensor-device.yaml, base.yaml]
+
+properties:
+  reg:
+    required: true
+
+  interrupts:
+    required: true
+
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+
+  rockchip,grf:
+    type: phandle
+    required: true
+    description: General register file used for TSADC analog configuration.
+
+  rockchip,otp:
+    type: phandle
+    required: true
+    description: OTP controller used to read the TSADC trim value.
+
+  rockchip,hw-tshut-temp:
+    type: int
+    default: 120000
+    description: Hardware thermal shutdown temperature in millidegrees Celsius.

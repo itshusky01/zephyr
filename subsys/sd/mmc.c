@@ -407,6 +407,11 @@ static int mmc_set_bus_width(struct sd_card *card)
 		LOG_ERR("Setting card data bus width failed: %d", ret);
 		return ret;
 	}
+	if ((cmd.response[0] & (SD_R1_ERR_FLAGS | MMC_R1_SWITCH_ERROR)) != 0U) {
+		LOG_ERR("Setting card data bus width rejected: R1=0x%08x",
+			cmd.response[0]);
+		return -EIO;
+	}
 
 	/* Set host controller bus width */
 	ret = sdhc_set_io(card->sdhc, &card->bus_io);

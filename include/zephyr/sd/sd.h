@@ -79,6 +79,8 @@ struct sd_card {
 	uint16_t flags; /*!< Card flags */
 	uint8_t bus_width; /*!< Desired bus width */
 	uint32_t cccr_flags; /*!< SDIO CCCR data */
+	uint32_t cid[4]; /*!< Raw card identification register */
+	bool cid_valid; /*!< CID cache is valid */
 	struct sdio_func func0; /*!< Function 0 common card data */
 
 	/* NOTE: The buffer is accessed as a uint32_t* by the SD subsystem, so must be

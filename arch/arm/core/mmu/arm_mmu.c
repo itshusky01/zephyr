@@ -75,10 +75,9 @@ static const struct arm_mmu_flat_range mmu_zephyr_ranges[] = {
 	  .attrs = MT_NORMAL | MATTR_SHARED |
 		   MPERM_R | MPERM_W |
 		   MATTR_CACHE_OUTER_WB_WA | MATTR_CACHE_INNER_WB_WA},
-#if defined(CONFIG_AARCH32_ARMV8_A)
-	/* The ARMv8-A AArch32 implementation uses VBAR to hold the final vector
-	 * table address (_vector_start); map it here rather than requiring
-	 * each SoC to provide its own entry in mmu_regions.c.
+#if defined(CONFIG_ARM_MMU_MAP_VECTORS)
+	/* The vector table is part of the image and may be placed outside
+	 * the regular text range on platforms using VBAR for relocation.
 	 */
 	{ .name  = "vectors",
 	  .start = (uint32_t)_vector_start,
@@ -132,7 +131,7 @@ static bool arm_mmu_l2_map_page(uint32_t va, uint32_t pa,
  * page tables are made at run-time, as the TLB might contain entries
  * which are no longer valid once the changes are applied.
  */
-static void invalidate_tlb_all(void)
+void arm_mmu_invalidate_tlb_local(void)
 {
 	__set_TLBIALL(0); /* 0 = opc2 = invalidate entire TLB */
 	barrier_dsync_fence_full();
@@ -209,6 +208,14 @@ static struct arm_mmu_l2_page_table *arm_mmu_assign_l2_table(uint32_t va)
 static void arm_mmu_release_l2_table(struct arm_mmu_l2_page_table *l2_page_table)
 {
 	uint32_t l2_page_table_index = ARM_MMU_L2_PT_INDEX(l2_page_table);
+	uint32_t l1_index = l2_page_tables_status[l2_page_table_index].l1_index;
+
+	/* Drop the L1 reference as well; otherwise a released table can remain
+	 * reachable through a stale L1 entry after it is reallocated.
+	 */
+	if (l1_index < ARM_MMU_PT_L1_NUM_ENTRIES) {
+		l1_page_table.entries[l1_index].word = 0;
+	}
 
 	l2_page_tables_status[l2_page_table_index].l1_index = 0;
 	if (arm_mmu_l2_tables_free == 0) {
@@ -556,7 +563,7 @@ static bool arm_mmu_remap_l1_section_to_l2_table(uint32_t va,
 
 	/* Remap complete, re-enable the MMU, unlock the interrupts. */
 
-	invalidate_tlb_all();
+	arm_mmu_invalidate_tlb_local();
 	__set_SCTLR(reg_val);
 
 	arch_irq_unlock(lock_key);
@@ -723,6 +730,26 @@ static bool arm_mmu_l2_unmap_page(uint32_t va)
 	uint32_t l2_index = (va >> ARM_MMU_PTE_L2_INDEX_PA_SHIFT) &
 			    ARM_MMU_PTE_L2_INDEX_MASK;
 
+	if (l1_page_table.entries[l1_index].undefined.id == ARM_MMU_PTE_ID_SECTION) {
+		/*
+		 * A 4 kB page is being unmapped from a 1 MB section. Convert the
+		 * section to an L2 table first, preserving the section attributes,
+		 * then clear the requested page.
+		 */
+		struct arm_mmu_l2_page_table *new_l2_page_table =
+			arm_mmu_assign_l2_table(va);
+
+		if (new_l2_page_table == NULL) {
+			return false;
+		}
+
+		if (!arm_mmu_remap_l1_section_to_l2_table(va, new_l2_page_table)) {
+			return false;
+		}
+
+		return arm_mmu_l2_unmap_page(va);
+	}
+
 	if (l1_page_table.entries[l1_index].undefined.id != ARM_MMU_PTE_ID_L2_PT) {
 		/*
 		 * No L2 PT currently exists for the given VA - this should be
@@ -810,36 +837,6 @@ static void arm_mmu_setup_ptables(void)
 		 "MMU_PAGE_SIZE value %u is invalid, only 4 kB pages are supported\n",
 		 CONFIG_MMU_PAGE_SIZE);
 
-	/* Set up the memory regions pre-defined by the image */
-	for (mem_range = 0; mem_range < ARRAY_SIZE(mmu_zephyr_ranges); mem_range++) {
-		pa          = mmu_zephyr_ranges[mem_range].start;
-		rem_size    = mmu_zephyr_ranges[mem_range].end - pa;
-		attrs       = mmu_zephyr_ranges[mem_range].attrs;
-		perms_attrs = arm_mmu_convert_attr_flags(attrs);
-
-		while (rem_size > 0) {
-			if (rem_size >= MB(1) && (pa & 0xFFFFF) == 0 &&
-			    (attrs & MATTR_MAY_MAP_L1_SECTION)) {
-				/*
-				 * Remaining area size > 1 MB & matching alignment
-				 * -> map a 1 MB section instead of individual 4 kB
-				 * pages with identical configuration.
-				 */
-				arm_mmu_l1_map_section(pa, pa, perms_attrs);
-				rem_size -= MB(1);
-				pa += MB(1);
-			} else {
-				bool success = arm_mmu_l2_map_page(pa, pa, perms_attrs);
-
-				__ASSERT(success, "Cannot map PA 0x%08X at boot time", pa);
-				ARG_UNUSED(success);
-
-				rem_size -= (rem_size >= KB(4)) ? KB(4) : rem_size;
-				pa += KB(4);
-			}
-		}
-	}
-
 	/* Set up the memory regions defined at the SoC level */
 	for (mem_range = 0; mem_range < mmu_config.num_regions; mem_range++) {
 		pa          = (uint32_t)(mmu_config.mmu_regions[mem_range].base_pa);
@@ -875,6 +872,41 @@ static void arm_mmu_setup_ptables(void)
 			}
 		}
 	}
+
+	/* Set up the memory regions pre-defined by the image */
+	for (mem_range = 0; mem_range < ARRAY_SIZE(mmu_zephyr_ranges); mem_range++) {
+		pa          = mmu_zephyr_ranges[mem_range].start;
+		rem_size    = mmu_zephyr_ranges[mem_range].end - pa;
+		attrs       = mmu_zephyr_ranges[mem_range].attrs;
+		perms_attrs = arm_mmu_convert_attr_flags(attrs);
+
+		while (rem_size > 0) {
+			if (rem_size >= MB(1) && (pa & 0xFFFFF) == 0 &&
+			    (attrs & MATTR_MAY_MAP_L1_SECTION)) {
+				/*
+				 * Remaining area size > 1 MB & matching alignment
+				 * -> map a 1 MB section instead of individual 4 kB
+				 * pages with identical configuration.
+				 */
+				arm_mmu_l1_map_section(pa, pa, perms_attrs);
+				rem_size -= MB(1);
+				pa += MB(1);
+			} else {
+				bool success = arm_mmu_l2_map_page(pa, pa, perms_attrs);
+
+				__ASSERT(success, "Cannot map PA 0x%08X at boot time", pa);
+				ARG_UNUSED(success);
+
+				rem_size -= (rem_size >= KB(4)) ? KB(4) : rem_size;
+				pa += KB(4);
+			}
+		}
+	}
+}
+
+/* Allows a SoC to resolve linker-dependent MMU regions before mapping. */
+__weak void arm_mmu_config_setup(void)
+{
 }
 
 /**
@@ -902,6 +934,7 @@ int z_arm_mmu_init(bool is_primary_core)
 	 * translation.
 	 */
 	if (is_primary_core) {
+		arm_mmu_config_setup();
 		arm_mmu_setup_ptables();
 	}
 
@@ -949,7 +982,7 @@ int z_arm_mmu_init(bool is_primary_core)
 	reg_val = ARM_MMU_DACR_ALL_DOMAINS_CLIENT;
 	__set_DACR(reg_val);
 
-	invalidate_tlb_all();
+	arm_mmu_invalidate_tlb_local();
 
 	/* Enable the MMU and Cache in SCTLR */
 	reg_val  = __get_SCTLR();
@@ -1080,9 +1113,10 @@ int arch_mem_map(void *virt, uintptr_t phys, size_t size, uint32_t flags)
 	}
 
 	/* Even a failed mapping may have modified the page tables before
-	 * bailing out, so the TLB has to be invalidated in any case.
+	 * bailing out, so the TLB has to be invalidated in any case. On SMP,
+	 * all online CPUs must observe the new page tables before returning.
 	 */
-	invalidate_tlb_all();
+	arch_tlb_invalidate_all();
 
 	return ret;
 }
@@ -1155,9 +1189,10 @@ int arch_mem_unmap(void *addr, size_t size)
 	}
 
 	/* Even a failed unmap may have modified the page tables before
-	 * bailing out, so the TLB has to be invalidated in any case.
+	 * bailing out, so the TLB has to be invalidated in any case. On SMP,
+	 * all online CPUs must observe the changed page tables before returning.
 	 */
-	invalidate_tlb_all();
+	arch_tlb_invalidate_all();
 
 	return ret;
 }

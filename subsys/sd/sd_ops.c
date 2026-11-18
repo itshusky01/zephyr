@@ -291,6 +291,11 @@ int card_read_cid(struct sd_card *card, uint32_t *cid)
 	struct sd_cid card_cid = {0};
 #endif
 
+	if (card->cid_valid) {
+		memcpy(cid, card->cid, sizeof(card->cid));
+		return 0;
+	}
+
 	if (card->host_props.is_spi && IS_ENABLED(CONFIG_SDHC_SUPPORTS_SPI_MODE)) {
 		ret = sdmmc_spi_read_cxd(card, SD_SEND_CID, cid);
 	} else if (IS_ENABLED(CONFIG_SDHC_SUPPORTS_NATIVE_MODE)) {
@@ -302,6 +307,8 @@ int card_read_cid(struct sd_card *card, uint32_t *cid)
 	if (ret) {
 		return ret;
 	}
+	memcpy(card->cid, cid, sizeof(card->cid));
+	card->cid_valid = true;
 
 #if defined(CONFIG_MMC_STACK)
 	if (card->type == CARD_MMC) {

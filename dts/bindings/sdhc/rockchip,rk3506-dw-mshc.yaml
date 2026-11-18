@@ -1,0 +1,51 @@
+# Copyright (c) 2026 Jiaming Zhao
+# SPDX-License-Identifier: Apache-2.0
+
+title: Rockchip RK3506 DesignWare Mobile Storage Host Controller
+
+description: Rockchip RK3506 DesignWare Mobile Storage Host Controller
+
+compatible: "rockchip,rk3506-dw-mshc"
+
+include: [sdhc.yaml, pinctrl-device.yaml, reset-device.yaml]
+
+properties:
+  clocks:
+    required: true
+
+  clock-names:
+    required: true
+    min-len: 2
+    max-len: 2
+    const: ["biu", "ciu"]
+
+  resets:
+    required: true
+
+  reset-names:
+    required: true
+    min-len: 1
+    max-len: 1
+    const: ["reset"]
+
+  pinctrl-0:
+    required: true
+
+  pinctrl-names:
+    required: true
+
+  fifo-depth:
+    type: int
+    default: 0
+    description: |
+      Depth of the controller data FIFO in 32-bit words. A value of zero
+      detects the depth from the reset value of the FIFO threshold register.
+
+  non-removable:
+    type: boolean
+    description: |
+      The attached device is non-removable, such as an eMMC. Card detection
+      always reports that a card is present.
+
+  bus-width:
+    default: 4

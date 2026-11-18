@@ -1,0 +1,139 @@
+/*
+ * Copyright (c) 2026 Jiaming Zhao
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+/dts-v1/;
+
+#include <rockchip/rk3506.dtsi>
+#include <rockchip/rk3506-pinctrl.dtsi>
+
+/ {
+	compatible = "dshanpi,2a-plus", "rockchip,rk3506";
+	model = "DShanPi 2A+";
+
+	aliases {
+		sdhc0 = &sdmmc;
+	};
+
+	chosen {
+		zephyr,sram = &zephyr_ram;
+		zephyr,console = &uart0;
+		zephyr,shell-uart = &uart0;
+	};
+
+	/*
+	 * Physical DDR available on the board. This is intentionally independent
+	 * of any particular firmware loader.
+	 */
+	ddr: memory@0 {
+		device_type = "memory";
+		reg = <0x00000000 0x20000000>;
+	};
+
+	/*
+	 * Bottom 16 MiB are reserved for the platform firmware arena. The exact
+	 * occupants (secure monitor, OP-TEE, loader, or none) are not assumed
+	 * here. Zephyr links and allocates only from the declared RAM region below.
+	 */
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		firmware: firmware@0 {
+			reg = <0x00000000 0x01000000>;
+			no-map;
+		};
+
+		m0_shared: m0-shared@1ff00000 {
+			reg = <0x1ff00000 0x00100000>;
+			no-map;
+		};
+	};
+
+	zephyr_ram: memory@1000000 {
+		compatible = "mmio-sram";
+		reg = <0x01000000 0x1ef00000>;
+		device_type = "memory";
+	};
+};
+
+&cpu0 {
+	clock-frequency = <1179648000>;
+};
+
+&cpu1 {
+	clock-frequency = <1179648000>;
+};
+
+&cpu2 {
+	clock-frequency = <1179648000>;
+};
+
+&m0 {
+	memory-region = <&m0_shared>;
+	status = "okay";
+};
+
+&pinctrl {
+	uart0_default: uart0-default {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 22, 1)>,
+				 <RK3506_PINCTRL_MUX(0, 23, 1)>;
+			bias-pull-up;
+		};
+	};
+
+	led_default: led-default {
+		group0 {
+			pinmux = <RK3506_PINCTRL_MUX(0, 16, 0)>;
+			bias-disable;
+		};
+	};
+};
+
+&uart0 {
+	current-speed = <1500000>;
+	pinctrl-0 = <&uart0_default>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&sdmmc {
+	pinctrl-0 = <&sdmmc_bus4>, <&sdmmc_clk>, <&sdmmc_cmd>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	mmc_disk: mmc {
+		compatible = "zephyr,mmc-disk";
+		disk-name = "EMMC";
+		bus-width = <4>;
+		status = "okay";
+	};
+};
+
+&wdt0 {
+	status = "okay";
+};
+
+&wdt1 {
+	status = "okay";
+};
+
+&reset_reason {
+	status = "okay";
+};
+
+&usb2phy {
+	status = "okay";
+};
+
+&usb2phy_otg0 {
+	status = "okay";
+};
+
+zephyr_udc0: &usb20_otg0 {
+	status = "okay";
+};
