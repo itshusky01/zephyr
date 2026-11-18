@@ -62,13 +62,31 @@ static unsigned char ipc_virtio_get_status(struct virtio_device *p_vdev)
 	return ret;
 }
 
-const static struct virtio_dispatch dispatch = {
+static const struct virtio_dispatch ipc_static_vrings_dispatch = {
 	.get_status = ipc_virtio_get_status,
 	.get_features = ipc_virtio_get_features,
 	.set_status = ipc_virtio_set_status,
 	.set_features = ipc_virtio_set_features,
 	.notify = ipc_virtio_notify,
 };
+
+static void release_virtqueue(struct ipc_static_vrings *vr, size_t index)
+{
+	struct virtqueue *vq = vr->vq[index];
+
+	if (vq == NULL) {
+		return;
+	}
+
+	/*
+	 * A host can keep RX buffers queued until the instance is closed.
+	 * The complete static ring is discarded here, so release its
+	 * descriptors before freeing the virtqueue control block.
+	 */
+	vq->vq_free_cnt = vq->vq_nentries;
+	virtqueue_free(vq);
+	vr->vq[index] = NULL;
+}
 
 static int vq_setup(struct ipc_static_vrings *vr, unsigned int role)
 {
@@ -79,6 +97,7 @@ static int vq_setup(struct ipc_static_vrings *vr, unsigned int role)
 
 	vr->vq[RPMSG_VQ_1] = virtqueue_allocate(vr->vring_size);
 	if (vr->vq[RPMSG_VQ_1] == NULL) {
+		release_virtqueue(vr, RPMSG_VQ_0);
 		return -ENOMEM;
 	}
 
@@ -97,7 +116,7 @@ static int vq_setup(struct ipc_static_vrings *vr, unsigned int role)
 	vr->vdev.role = role;
 
 	vr->vdev.vrings_num = VRING_COUNT;
-	vr->vdev.func = &dispatch;
+	vr->vdev.func = &ipc_static_vrings_dispatch;
 	vr->vdev.vrings_info = &vr->rvrings[0];
 
 	return 0;
@@ -110,8 +129,9 @@ static void vq_teardown(struct ipc_static_vrings *vr, unsigned int role)
 	memset(&(vr->rvrings[RPMSG_VQ_1]), 0, sizeof(struct virtio_vring_info));
 	memset(&(vr->rvrings[RPMSG_VQ_0]), 0, sizeof(struct virtio_vring_info));
 
-	virtqueue_free(vr->vq[RPMSG_VQ_1]);
-	virtqueue_free(vr->vq[RPMSG_VQ_0]);
+	for (size_t i = 0; i < VRING_COUNT; i++) {
+		release_virtqueue(vr, i);
+	}
 }
 
 int ipc_static_vrings_init(struct ipc_static_vrings *vr, unsigned int role)

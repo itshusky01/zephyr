@@ -50,3 +50,32 @@ properties:
       The size of the buffer used to send data between host and remote. Default
       value is RPMSG_BUFFER_SIZE. This property must be the same for host and
       remote and preferably a multiple of the cache line size.
+
+  zephyr,tx-vring-offset:
+    type: int
+    description: |
+      Offset of the TX vring from the start of the memory-region. When this
+      property is present, all fixed-layout properties must be provided and
+      the backend uses the explicit layout instead of deriving one from the
+      region size.
+
+  zephyr,rx-vring-offset:
+    type: int
+    description: |
+      Offset of the RX vring from the start of the memory-region.
+
+  zephyr,buffer-pool-offset:
+    type: int
+    description: |
+      Offset of the RPMsg buffer pool from the start of the memory-region.
+
+  zephyr,buffer-pool-size:
+    type: int
+    description: |
+      Size of the RPMsg buffer pool in bytes.
+
+  zephyr,num-descriptors:
+    type: int
+    description: |
+      Number of descriptors in each fixed-layout vring. The value must be a
+      power of two representable by uint16_t.

@@ -184,6 +184,7 @@ backend.
 .. toctree::
    :maxdepth: 1
 
+   backends/ipc_service_static_vrings.rst
    backends/ipc_service_icmsg.rst
    backends/ipc_service_icbmsg.rst
 

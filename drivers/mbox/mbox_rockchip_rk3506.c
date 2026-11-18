@@ -65,17 +65,19 @@ static int rk_mbox_send(const struct device *dev, mbox_channel_id_t channel_id,
 {
 	struct rk_mbox_data *data = dev->data;
 	uintptr_t base = DEVICE_MMIO_GET(dev);
-	struct rk_mbox_msg frame;
+	struct rk_mbox_msg frame = {0};
 	k_spinlock_key_t key;
 
 	if (channel_id != 0U) {
 		return -EINVAL;
 	}
-	if (msg == NULL || msg->size != sizeof(frame) || msg->data == NULL) {
-		return -EMSGSIZE;
+	/* NULL is a signal-only notification. The hardware frame stays zeroed. */
+	if (msg != NULL) {
+		if (msg->size != sizeof(frame) || msg->data == NULL) {
+			return -EMSGSIZE;
+		}
+		memcpy(&frame, msg->data, sizeof(frame));
 	}
-
-	memcpy(&frame, msg->data, sizeof(frame));
 
 	key = k_spin_lock(&data->lock);
 	if ((sys_read32(base + RK_MBOX_A2B_STATUS) & RK_MBOX_TX_DONE) != 0U) {

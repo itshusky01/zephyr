@@ -20,6 +20,8 @@
 
 #include "ipc_rpmsg_static_vrings.h"
 
+LOG_MODULE_DECLARE(ipc_service, CONFIG_IPC_SERVICE_LOG_LEVEL);
+
 #define DT_DRV_COMPAT	zephyr_ipc_openamp_static_vrings
 
 #define NUM_INSTANCES	DT_NUM_INST_STATUS_OKAY(DT_DRV_COMPAT)
@@ -61,6 +63,12 @@ struct backend_config_t {
 	unsigned int role;
 	uintptr_t shm_addr;
 	size_t shm_size;
+	bool fixed_layout;
+	uint32_t tx_vring_offset;
+	uint32_t rx_vring_offset;
+	uint32_t buffer_pool_offset;
+	size_t buffer_pool_size;
+	unsigned int num_descriptors;
 	struct mbox_dt_spec mbox_tx;
 	struct mbox_dt_spec mbox_rx;
 	unsigned int wq_prio_type;
@@ -249,9 +257,67 @@ static int ept_cb(struct rpmsg_endpoint *ep, void *data, size_t len, uint32_t sr
 	return RPMSG_SUCCESS;
 }
 
+static bool ranges_overlap(size_t addr_a, size_t len_a, size_t addr_b, size_t len_b)
+{
+	return addr_a < addr_b + len_b && addr_b < addr_a + len_a;
+}
+
+static int configure_fixed_layout(struct ipc_static_vrings *vr,
+				  const struct backend_config_t *conf)
+{
+	size_t vring_bytes;
+
+	if (conf->num_descriptors == 0U ||
+	    !is_power_of_two(conf->num_descriptors) ||
+	    conf->num_descriptors > UINT16_MAX ||
+	    conf->buffer_size == 0U) {
+		LOG_ERR("Invalid fixed VRING descriptor or buffer configuration");
+		return -EINVAL;
+	}
+
+	vring_bytes = vring_size(conf->num_descriptors, MEM_ALIGNMENT);
+	if ((conf->shm_addr % MEM_ALIGNMENT) != 0U ||
+	    (conf->tx_vring_offset % MEM_ALIGNMENT) != 0U ||
+	    (conf->rx_vring_offset % MEM_ALIGNMENT) != 0U ||
+	    (conf->buffer_pool_offset % MEM_ALIGNMENT) != 0U ||
+	    (conf->buffer_pool_size % MEM_ALIGNMENT) != 0U ||
+	    conf->tx_vring_offset < VDEV_STATUS_SIZE ||
+	    conf->rx_vring_offset < VDEV_STATUS_SIZE ||
+	    conf->buffer_pool_offset < VDEV_STATUS_SIZE ||
+	    conf->tx_vring_offset > conf->shm_size ||
+	    vring_bytes > conf->shm_size - conf->tx_vring_offset ||
+	    conf->rx_vring_offset > conf->shm_size ||
+	    vring_bytes > conf->shm_size - conf->rx_vring_offset ||
+	    conf->buffer_pool_offset > conf->shm_size ||
+	    conf->buffer_pool_size > conf->shm_size - conf->buffer_pool_offset ||
+	    ranges_overlap(conf->tx_vring_offset, vring_bytes,
+			   conf->rx_vring_offset, vring_bytes) ||
+	    ranges_overlap(conf->tx_vring_offset, vring_bytes,
+			   conf->buffer_pool_offset, conf->buffer_pool_size) ||
+	    ranges_overlap(conf->rx_vring_offset, vring_bytes,
+			   conf->buffer_pool_offset, conf->buffer_pool_size) ||
+	    conf->buffer_pool_size / conf->buffer_size < conf->num_descriptors) {
+		LOG_ERR("Invalid fixed VRING offsets, ranges, or buffer-pool size");
+		return -EINVAL;
+	}
+
+	vr->status_reg_addr = conf->shm_addr;
+	vr->shm_addr = conf->shm_addr;
+	vr->shm_size = conf->shm_size;
+	vr->tx_addr = conf->shm_addr + conf->tx_vring_offset;
+	vr->rx_addr = conf->shm_addr + conf->rx_vring_offset;
+	vr->vring_size = conf->num_descriptors;
+
+	return 0;
+}
+
 static int vr_shm_configure(struct ipc_static_vrings *vr, const struct backend_config_t *conf)
 {
 	unsigned int num_desc;
+
+	if (conf->fixed_layout) {
+		return configure_fixed_layout(vr, conf);
+	}
 
 	num_desc = optimal_num_desc(conf->shm_size, conf->buffer_size);
 	if (num_desc == 0) {
@@ -567,6 +633,8 @@ static int open(const struct device *instance)
 	struct backend_data_t *data = instance->data;
 	struct ipc_rpmsg_instance *rpmsg_inst;
 	struct rpmsg_device *rdev;
+	void *buffer_pool_addr;
+	size_t buffer_pool_size;
 	int err;
 
 	if (!atomic_cas(&data->state, STATE_READY, STATE_BUSY)) {
@@ -596,10 +664,17 @@ static int open(const struct device *instance)
 	rpmsg_inst->bound_cb = bound_cb;
 	rpmsg_inst->cb = ept_cb;
 
+	if (conf->fixed_layout) {
+		buffer_pool_addr = (void *)(conf->shm_addr + conf->buffer_pool_offset);
+		buffer_pool_size = conf->buffer_pool_size;
+	} else {
+		buffer_pool_addr = (void *)data->vr.shm_addr;
+		buffer_pool_size = data->vr.shm_size;
+	}
+
 	err = ipc_rpmsg_init(rpmsg_inst, data->role, conf->buffer_size,
 			     &data->vr.shm_io, &data->vr.vdev,
-			     (void *)data->vr.shm_addr,
-			     data->vr.shm_size, ns_bind_cb);
+			     buffer_pool_addr, buffer_pool_size, ns_bind_cb);
 	if (err != 0) {
 		goto error;
 	}
@@ -808,12 +883,25 @@ static int backend_init(const struct device *instance)
 #define BACKEND_SHM_ADDR(i) DT_REG_ADDR(DT_INST_PHANDLE(i, memory_region))
 #endif /* defined(CONFIG_ARCH_POSIX) */
 
+#define BACKEND_FIXED_LAYOUT(i)							\
+	(DT_INST_NODE_HAS_PROP(i, zephyr_tx_vring_offset) ||			\
+	 DT_INST_NODE_HAS_PROP(i, zephyr_rx_vring_offset) ||			\
+	 DT_INST_NODE_HAS_PROP(i, zephyr_buffer_pool_offset) ||			\
+	 DT_INST_NODE_HAS_PROP(i, zephyr_buffer_pool_size) ||			\
+	 DT_INST_NODE_HAS_PROP(i, zephyr_num_descriptors))
+
 #define DEFINE_BACKEND_DEVICE(i)							\
 	BACKEND_PRE(i)									\
 	static struct backend_config_t backend_config_##i = {				\
 		.role = DT_ENUM_IDX_OR(DT_DRV_INST(i), role, ROLE_HOST),		\
 		.shm_size = DT_REG_SIZE(DT_INST_PHANDLE(i, memory_region)),		\
 		.shm_addr = BACKEND_SHM_ADDR(i),					\
+		.fixed_layout = BACKEND_FIXED_LAYOUT(i),					\
+		.tx_vring_offset = DT_INST_PROP_OR(i, zephyr_tx_vring_offset, 0),	\
+		.rx_vring_offset = DT_INST_PROP_OR(i, zephyr_rx_vring_offset, 0),	\
+		.buffer_pool_offset = DT_INST_PROP_OR(i, zephyr_buffer_pool_offset, 0), \
+		.buffer_pool_size = DT_INST_PROP_OR(i, zephyr_buffer_pool_size, 0),	\
+		.num_descriptors = DT_INST_PROP_OR(i, zephyr_num_descriptors, 0),	\
 		.mbox_tx = MBOX_DT_SPEC_INST_GET(i, tx),				\
 		.mbox_rx = MBOX_DT_SPEC_INST_GET(i, rx),				\
 		.wq_prio = COND_CODE_1(DT_INST_NODE_HAS_PROP(i, zephyr_priority),	\
